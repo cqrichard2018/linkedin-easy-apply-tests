@@ -18,9 +18,19 @@ export class JobsPage {
   }
 
   private get jobCards() {
+    // logged-in split-pane cards + guest-view bare <li> under the results list
     return this.page.locator(
-      '.job-card-container, li.jobs-search-results__list-item, li.occludable-update',
+      '.job-card-container, li.jobs-search-results__list-item, li.occludable-update, ul.jobs-search__results-list > li',
     );
+  }
+
+  /** Guest view pops a sign-in modal on card click; dismiss if present. */
+  async dismissGuestModal(): Promise<void> {
+    const dismiss = this.page.locator('button.modal__dismiss').first();
+    if (await dismiss.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await dismiss.click();
+      logger.info('guest sign-in modal dismissed');
+    }
   }
 
   async searchWithEasyApply(keywords: string, location: string): Promise<void> {
@@ -51,6 +61,7 @@ export class JobsPage {
       const card = this.jobCards.nth(i);
       await card.scrollIntoViewIfNeeded();
       await card.click();
+      await this.dismissGuestModal();
       try {
         await expect(easyApplyBtn).toBeVisible({ timeout: 5_000 });
         await expect(easyApplyBtn).toBeEnabled();

@@ -13,6 +13,7 @@ async function main() {
   const context = await browser.newContext({
     baseURL: process.env.BASE_URL ?? 'https://www.linkedin.com',
     viewport: { width: 1440, height: 900 },
+    locale: 'en-US',
   });
   const page = await context.newPage();
   const shot = (name: string) => page.screenshot({ path: `screenshots/${name}.png`, fullPage: false });
@@ -24,15 +25,20 @@ async function main() {
     logger.info('screenshot saved', { file: 'screenshots/01-search-results.png' });
 
     const firstCard = page
-      .locator('.job-card-container, li.jobs-search-results__list-item, li.occludable-update')
+      .locator('.job-card-container, li.jobs-search-results__list-item, li.occludable-update, ul.jobs-search__results-list > li')
       .first();
     await firstCard.scrollIntoViewIfNeeded();
     await firstCard.click();
+    await jobs.dismissGuestModal();
     await page.waitForTimeout(3000); // let the detail pane settle
     await shot('02-job-detail');
     logger.info('screenshot saved', { file: 'screenshots/02-job-detail.png' });
 
-    const easyApplyBtn = page.getByRole('button', { name: /easy apply/i }).first();
+    // logged-in jobs show "Easy Apply"; guest view shows a generic "Apply" CTA
+    const easyApplyBtn = page
+      .getByRole('button', { name: /easy apply/i })
+      .or(page.locator('button.apply-button'))
+      .first();
     if (await easyApplyBtn.isVisible().catch(() => false)) {
       await easyApplyBtn.click();
       await page.waitForTimeout(3000);
