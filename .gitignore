@@ -7,3 +7,4 @@ reports/
 test-results/
 .DS_Store
 submission/
+.auth/cookies.txt

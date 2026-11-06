@@ -1,8 +1,33 @@
 /** LinkedIn Easy Apply E2E suite — @author Li Jiang (Richard) */
 import { test as setup, expect } from '@playwright/test';
 import fs from 'node:fs';
+import path from 'node:path';
 import { getUsers } from '../utils/users';
 import { logger } from '../utils/logger';
+
+/**
+ * Parses a raw "name=value; name=value" browser cookie header into Playwright
+ * cookies. A full jar (not just li_at) replays much more cleanly: a bare
+ * li_at on a fresh profile looks like a stolen-cookie replay and gets
+ * Cloudflare-blocked on logged-in surfaces.
+ */
+function parseCookieJar(file: string) {
+  const raw = fs.readFileSync(file, 'utf8').trim();
+  return raw.split(/;\s*/).map((pair) => {
+    const eq = pair.indexOf('=');
+    const name = pair.slice(0, eq).trim();
+    let value = pair.slice(eq + 1).trim();
+    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+    return {
+      name,
+      value,
+      domain: '.linkedin.com',
+      path: '/',
+      // force English UI so label-based locators stay stable across accounts
+      ...(name === 'lang' ? { value: 'v=2&lang=en-us' } : {}),
+    };
+  });
+}
 
 /**
  * Authenticates every configured user ONCE and persists storageState.
@@ -22,7 +47,12 @@ for (const user of getUsers()) {
       return;
     }
 
-    if (user.liAt) {
+    const jarFile = path.resolve(process.cwd(), '.auth/cookies.txt');
+    if (user.liAt && fs.existsSync(jarFile)) {
+      logger.info('Authenticating via full cookie jar', { user: user.id, jarFile });
+      await context.addCookies(parseCookieJar(jarFile));
+      await page.goto(`${baseURL}/feed/`, { waitUntil: 'domcontentloaded' });
+    } else if (user.liAt) {
       logger.info('Authenticating via li_at cookie', { user: user.id });
       await context.addCookies([
         {
