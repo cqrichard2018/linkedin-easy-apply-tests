@@ -1,0 +1,50 @@
+# LinkedIn Easy Apply E2E suite — author: Li Jiang (Richard)
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *' # nightly regression — catches LinkedIn UI drift early
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest # GitHub images ship both Chrome and Edge preinstalled
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chrome, edge, iphone-13, galaxy-s9]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Sessions are restored from the li_at cookies stored as repo secrets, so
+      # CI never performs a UI login (data-center IPs trigger CAPTCHA).
+      - name: Run tests
+        env:
+          LINKEDIN_USER_A_LI_AT: ${{ secrets.LINKEDIN_USER_A_LI_AT }}
+          LINKEDIN_USER_B_LI_AT: ${{ secrets.LINKEDIN_USER_B_LI_AT }}
+          SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS || 'Software Engineer' }}
+          SEARCH_LOCATION: ${{ vars.SEARCH_LOCATION || 'United States' }}
+        run: npx playwright test --project=${{ matrix.project }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ matrix.project }}
+          path: |
+            playwright-report/
+            reports/
+            logs/
+            test-results/
+          retention-days: 14
