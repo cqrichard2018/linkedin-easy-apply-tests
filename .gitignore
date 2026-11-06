@@ -1,0 +1,9 @@
+node_modules/
+.env
+.auth/*.json
+logs/
+playwright-report/
+reports/
+test-results/
+.DS_Store
+submission/

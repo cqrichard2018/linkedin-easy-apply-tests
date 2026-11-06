@@ -1,0 +1,26 @@
+{
+  "name": "linkedin-easy-apply-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright E2E suite for LinkedIn Easy Apply flow (never submits a real application)",
+  "scripts": {
+    "auth": "HEADED=1 npx playwright test --project=setup",
+    "test": "npx playwright test",
+    "test:chrome": "npx playwright test --project=chrome",
+    "test:edge": "npx playwright test --project=edge",
+    "test:mobile": "npx playwright test --project=iphone-13 --project=galaxy-s9",
+    "test:headed": "HEADED=1 npx playwright test --headed",
+    "report": "npx playwright show-report",
+    "mock": "node mock/server.mjs",
+    "demo": "BASE_URL=http://127.0.0.1:3009 LINKEDIN_USER_A_EMAIL=demo@example.com LINKEDIN_USER_A_PASSWORD=demo-pass playwright test --project=chrome",
+    "demo:screenshots": "BASE_URL=http://127.0.0.1:3009 tsx scripts/demo-search.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "dotenv": "^16.4.7",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.0"
+  },
+  "author": "Li Jiang (Richard)"
+}
